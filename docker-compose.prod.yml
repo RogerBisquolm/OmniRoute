@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  # Caching and State Layer with Vector Similarity Search (RediSearch)
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: omniroute_redis_prod
+    environment:
+      - TZ=Europe/Zurich
+    volumes:
+      - redis_data:/data
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MariaDB Master (Writes & Main Database)
+  mariadb-master:
+    image: mariadb:10.11
+    container_name: omniroute_db_master_prod
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      TZ: Europe/Zurich
+    volumes:
+      - mariadb_master_data:/var/lib/mysql
+      - ./docker/mariadb/master.cnf:/etc/mysql/conf.d/replication.cnf:ro
+      - ./docker/mariadb/init-master.sql:/docker-entrypoint-initdb.d/init-master.sql:ro
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1536M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MariaDB Slave (Read Replica)
+  mariadb-slave:
+    image: mariadb:10.11
+    container_name: omniroute_db_slave_prod
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      TZ: Europe/Zurich
+    volumes:
+      - mariadb_slave_data:/var/lib/mysql
+      - ./docker/mariadb/slave.cnf:/etc/mysql/conf.d/replication.cnf:ro
+      - ./docker/mariadb/setup-slave.sh:/usr/local/bin/setup-slave.sh:ro
+    entrypoint: []
+    command: >
+      bash -c "
+      chmod +x /usr/local/bin/setup-slave.sh &&
+      /usr/local/bin/setup-slave.sh &
+      exec docker-entrypoint.sh mysqld
+      "
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1536M
+    depends_on:
+      mariadb-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AI API Gateway / Reverse Proxy (FastAPI)
+  fastapi:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: omniroute_proxy_prod
+    ports:
+      - "${PROXY_PORT:-8000}:8000"
+    environment:
+      - APP_ENV=production
+      - REDIS_URL=redis://redis:6379/0
+      - DB_MASTER_URL=mysql+asyncmy://${MARIADB_USER}:${MARIADB_PASSWORD}@mariadb-master:3306/${MARIADB_DATABASE}
+      - DB_SLAVE_URL=mysql+asyncmy://${MARIADB_USER}:${MARIADB_PASSWORD}@mariadb-slave:3306/${MARIADB_DATABASE}
+      - FASTTEXT_MODEL_PATH=/app/models/intent_model.bin
+      - LLMLINGUA_MODEL_PATH=microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_MAX_MODEL_SIZE_GB=${OLLAMA_MAX_MODEL_SIZE_GB:-16}
+      - TZ=Europe/Zurich
+    volumes:
+      - proxy_models:/app/models
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3072M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb-master:
+        condition: service_healthy
+
+  # Management Backend & Web-GUI (Laravel)
+  laravel:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omniroute_backend_prod
+    ports:
+      - "${LARAVEL_PORT:-8080}:80"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${LARAVEL_APP_KEY}
+      - SERVER_NAME=http://localhost:80
+      - DB_CONNECTION=mysql
+      - DB_HOST=mariadb-master
+      - DB_SLAVE_HOST=mariadb-slave
+      - DB_PORT=3306
+      - DB_DATABASE=${MARIADB_DATABASE}
+      - DB_USERNAME=${MARIADB_USER}
+      - DB_PASSWORD=${MARIADB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TZ=Europe/Zurich
+      - GUI_PASSWORD=${GUI_PASSWORD:-password}
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1536M
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb-master:
+        condition: service_healthy
+
+  # Local Ollama Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: omniroute_ollama_prod
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8192M
+
+volumes:
+  redis_data:
+  mariadb_master_data:
+  mariadb_slave_data:
+  proxy_models:
+  ollama_data:

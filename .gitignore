@@ -1,0 +1,58 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Project screenshots and temporary media
+screenshot.png
+screenshot_*.png
+*.webp
+*.mp4
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# FastAPI / Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# Laravel
+backend/vendor/
+backend/node_modules/
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/.env
+backend/.env.backup
+backend/.env.production
+backend/npm-debug.log
+backend/yarn-error.log
+
+# Docker database volumes & dynamic logs
+*.log
+docker/db/data/

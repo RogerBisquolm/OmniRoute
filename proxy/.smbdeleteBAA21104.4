@@ -1,0 +1,49 @@
+import os
+import httpx
+import asyncio
+
+async def test_openai():
+    api_key = os.getenv("OPENAI_API_KEY")
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    body = {
+        "model": "gpt-5",
+        "messages": [
+            {"role": "user", "content": "wie erstelle ich eine PHP Funktion, php Version 8.5"}
+        ],
+        "stream": True
+    }
+    
+    full_text = []
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            async with client.stream("POST", url, json=body, headers=headers) as response:
+                if response.status_code != 200:
+                    print(f"Error status code: {response.status_code}")
+                    return
+                async for line in response.aiter_lines():
+                    if line.startswith("data: ") and not line.startswith("data: [DONE]"):
+                        try:
+                            import json
+                            data = json.loads(line[6:])
+                            choices = data.get("choices", [])
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    full_text.append(content)
+                        except Exception as e:
+                            pass
+        except Exception as e:
+            print(f"Error: {e}")
+            
+    final_output = "".join(full_text)
+    print("--- RAW OUTPUT ---")
+    print(repr(final_output))
+    print("--- RENDERED ---")
+    print(final_output)
+
+asyncio.run(test_openai())

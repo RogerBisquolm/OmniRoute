@@ -1,0 +1,16 @@
+/vendor/
+/node_modules/
+.env
+.env.backup
+/public/storage
+/public/hot
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/bootstrap/cache/*
+.git/
+.gitignore
+.editorconfig
+.gitattributes
+phpunit.xml

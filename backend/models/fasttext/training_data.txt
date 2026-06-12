@@ -1,0 +1,42 @@
+__label__code how to write a quicksort algorithm in python
+__label__code fix this runtime error in java
+__label__code database query optimizer in mariadb
+__label__code regex match email address syntax
+__label__code implement a linked list in rust
+__label__code kubernetes deployment yaml config file
+__label__code write a quicksort implementation in python
+__label__code how do i code a binary search tree in java
+__label__code optimize mariadb database query execution plan
+__label__code regular expression for email address validation
+__label__code implement a doubly linked list in rust
+__label__code configure docker-compose for fastapi backend and redis cache
+__label__creative write a science fiction story about mars
+__label__creative compose a romantic song in g major
+__label__creative brainstorm naming ideas for a fintech startup
+__label__creative draft an intro for a podcast on philosophy
+__label__creative design a D&D character sheet for a rogue
+__label__creative write a story about time travel adventures
+__label__creative compose a music sheet in g major scale
+__label__creative brainstorm catchy names for a technology startup
+__label__creative draft an intro hook for a philosophy podcast
+__label__creative write a bedtime story about little wolf cubs
+__label__support my login token expired help
+__label__support invoice was sent to the wrong address
+__label__support refund request policy terms
+__label__support reset my two factor authentication settings
+__label__support is there an active server outage today
+__label__support my login session expired help me log in
+__label__support support ticket for password reset request
+__label__support billing invoice was sent to the wrong email address
+__label__support request refund for failed transaction charge
+__label__support how can i cancel my monthly premium subscription
+__label__general what is the definition of photosynthesis
+__label__general distance between moon and sun
+__label__general list of top tourist places in switzerland
+__label__general how to cook scrambled eggs
+__label__general tell me a dad joke
+__label__general what is the definition of photosynthesis in plants
+__label__general distance between planet earth and the moon
+__label__general name the capital city of switzerland
+__label__general search for a chocolate chip cookies recipe
+__label__general tell me a funny dad joke

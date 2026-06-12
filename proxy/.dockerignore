@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+.git/
+.gitignore
+.env
+models/st_cache/
+models/hf_cache/
+models/intent_model.bin
+tests/
