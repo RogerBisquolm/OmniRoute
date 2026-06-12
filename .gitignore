@@ -6,8 +6,6 @@
 .env.development
 
 # Project screenshots and temporary media
-screenshot.png
-screenshot_*.png
 *.webp
 *.mp4
 
