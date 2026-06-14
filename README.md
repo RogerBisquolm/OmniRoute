@@ -42,9 +42,14 @@ Token logs are not written directly to the database to prevent blocking HTTP wor
 *   A background task drains the oldest 100 entries every 5 seconds and inserts them in bulk into MariaDB.
 *   **Transactional Security**: Logs are only removed from Redis (via transaction pipeline `rpop`) after MariaDB confirms a successful insert. If the database goes down, logs remain queued in Redis to prevent data loss.
 
-### 5. Prompt Compression with Short-Circuit
-Longer prompts are compressed using LLMLingua-2 on CPU to save token costs on external APIs.
-*   **Bypass for Short Prompts**: Prompts with less than 150 characters or less than 30 words immediately bypass the CPU-heavy compressor. This saves 5–30 ms of gateway latency for greetings or short questions.
+### 5. Hybrid Prompt Compression Pipeline (LLMLingua-2 + RTK + Caveman)
+To maximize token savings on external APIs and minimize latency, the gateway supports multiple dynamic compression strategies:
+*   **LLMLingua-2 (CPU)**: A BERT-based token classification model that compresses long prompts to a target ratio.
+*   **RTK (Rust Token Killer) Filter**: A lightweight rule-based compressor that strips ANSI colors, terminal progress bars, repetitive compiler/log outputs, and filters successful test results. Ideal for code agent tasks.
+*   **Caveman Semantic Compression**: Strips conversational filler, articles (`a`, `an`, `the`), and prepositions depending on intensity (`lite`, `full`, or `ultra`), returning a highly dense telegraphic representation.
+*   **Stacked Pipelines**: Run multiple modes in sequence (e.g. `stacked` for RTK + Caveman, or `rtk+llmlingua` for RTK filtering followed by LLMLingua-2 model compression).
+*   **Bypass for Short Prompts**: Prompts with less than 150 characters or less than 30 words immediately bypass the CPU-heavy LLMLingua model to save latency.
+*   **Real-time Dashboard Configuration**: The active compression strategy, target ratios, and Caveman intensity levels can be configured and updated instantly on the admin dashboard via Redis Pub/Sub.
 
 ### 6. Cost-Neutral Ollama Token Tracking
 Since Ollama models run locally on private hardware, they do not incur API costs. The gateway tracks and displays token usage statistics for Ollama requests but records their database cost as exactly **$0.00**.
