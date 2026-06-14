@@ -221,20 +221,18 @@
 
         /* Charts section */
         .charts-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
+            position: relative;
+            width: 100%;
         }
-
         .chart-box {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.03);
             border-radius: 8px;
-            padding: 0.2rem;
-            height: 130px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 0.3rem;
+            height: 115px;
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* Tables & Lists */
@@ -611,14 +609,20 @@
             <div class="column-wrapper">
                 <!-- Live Telemetry Card -->
                 <div class="card" style="flex: 0 0 auto;">
-                    <div class="card-header">
-                        <div class="card-title">Live Telemetry Analysis</div>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-title">Live Telemetry</div>
+                        <div style="display: flex; gap: 0.2rem; background: rgba(255, 255, 255, 0.03); padding: 0.15rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <button type="button" id="tab-intents-btn" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 4px; cursor: pointer; border: none; background: var(--accent-primary); color: white; transition: all 0.2s; font-weight: 600; outline: none; box-shadow: none;">Intents</button>
+                            <button type="button" id="tab-models-btn" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; border-radius: 4px; cursor: pointer; border: none; background: transparent; color: var(--text-secondary); transition: all 0.2s; font-weight: 500; outline: none; box-shadow: none;">Models</button>
+                        </div>
                     </div>
                     <div class="charts-container">
-                        <div class="chart-box">
+                        <!-- Intents Doughnut Chart Container -->
+                        <div id="chart-intents-container" class="chart-box">
                             <canvas id="intentsChart"></canvas>
                         </div>
-                        <div class="chart-box">
+                        <!-- Models Bar Chart Container -->
+                        <div id="chart-models-container" class="chart-box" style="display: none;">
                             <canvas id="modelsChart"></canvas>
                         </div>
                     </div>
@@ -1199,14 +1203,39 @@
                     if (idx !== -1) intentData[idx] = item.count;
                 });
                 intentsChartObj.data.datasets[0].data = intentData;
-                intentsChartObj.update();
+                
+                const intentsContainer = document.getElementById('chart-intents-container');
+                if (intentsContainer && intentsContainer.style.display !== 'none') {
+                    intentsChartObj.update();
+                }
+
+                // Helper to shorten model names for chart x-axis labels
+                function formatModelNameShort(name) {
+                    if (!name) return "";
+                    if (name === "semantic-cache") return "cache";
+                    let short = name.replace(/[-_]\d{4,8}/g, "").replace(/[-_]\d{4}-\d{2}-\d{2}/g, "");
+                    short = short.replace("-latest", "").replace(":latest", "");
+                    short = short.replace("claude-3-5-sonnet", "claude-3.5");
+                    short = short.replace("gemini-3.5-flash", "gemini-3.5-f");
+                    short = short.replace("gemini-1.5-flash", "gemini-1.5-f");
+                    short = short.replace("gemini-1.5-pro", "gemini-1.5-p");
+                    short = short.replace("gpt-4o-mini", "gpt-4o-m");
+                    if (short.length > 12) {
+                        return short.substring(0, 11) + "…";
+                    }
+                    return short;
+                }
 
                 // 3. Update Models Chart
-                const modelNames = data.models.map(m => m.model);
+                const modelNames = data.models.map(m => formatModelNameShort(m.model));
                 const modelRequests = data.models.map(m => m.count);
                 modelsChartObj.data.labels = modelNames;
                 modelsChartObj.data.datasets[0].data = modelRequests;
-                modelsChartObj.update();
+                
+                const modelsContainer = document.getElementById('chart-models-container');
+                if (modelsContainer && modelsContainer.style.display !== 'none') {
+                    modelsChartObj.update();
+                }
 
                 // 4. Update Audit logs table
                 const logsTbody = document.getElementById('logs-table-body');
@@ -2104,6 +2133,46 @@
                 ratioVal.textContent = parseFloat(e.target.value).toFixed(2);
             });
             ratioSlider.addEventListener('change', saveCompressorConfig);
+
+            // Bind Tab switching for Telemetry charts
+            const tabIntentsBtn = document.getElementById('tab-intents-btn');
+            const tabModelsBtn = document.getElementById('tab-models-btn');
+            const chartIntentsContainer = document.getElementById('chart-intents-container');
+            const chartModelsContainer = document.getElementById('chart-models-container');
+
+            tabIntentsBtn.addEventListener('click', () => {
+                tabIntentsBtn.style.background = 'var(--accent-primary)';
+                tabIntentsBtn.style.color = 'white';
+                tabIntentsBtn.style.fontWeight = '600';
+                tabModelsBtn.style.background = 'transparent';
+                tabModelsBtn.style.color = 'var(--text-secondary)';
+                tabModelsBtn.style.fontWeight = '500';
+
+                chartIntentsContainer.style.display = 'block';
+                chartModelsContainer.style.display = 'none';
+
+                if (intentsChartObj) {
+                    intentsChartObj.resize();
+                    intentsChartObj.update();
+                }
+            });
+
+            tabModelsBtn.addEventListener('click', () => {
+                tabModelsBtn.style.background = 'var(--accent-primary)';
+                tabModelsBtn.style.color = 'white';
+                tabModelsBtn.style.fontWeight = '600';
+                tabIntentsBtn.style.background = 'transparent';
+                tabIntentsBtn.style.color = 'var(--text-secondary)';
+                tabIntentsBtn.style.fontWeight = '500';
+
+                chartIntentsContainer.style.display = 'none';
+                chartModelsContainer.style.display = 'block';
+
+                if (modelsChartObj) {
+                    modelsChartObj.resize();
+                    modelsChartObj.update();
+                }
+            });
 
             // Bind Classifier Search input
             document.getElementById('classifier-search').addEventListener('input', (e) => {
