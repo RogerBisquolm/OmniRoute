@@ -190,6 +190,8 @@
             flex-direction: column;
             gap: 0.8rem;
             min-height: 0;
+            overflow-y: auto;
+            padding-right: 4px;
         }
 
         .card {
@@ -654,7 +656,7 @@
             <!-- Column 2: API Keys & Cache/Security Control -->
             <div class="column-wrapper">
                 <!-- API Keys Configuration Card -->
-                <div class="card" style="flex: 1; min-height: 0;">
+                <div class="card" style="flex: 0 0 auto;">
                     <div class="card-header">
                         <div class="card-title">API Keys Configuration</div>
                         <button type="button" id="open-add-key-btn" style="padding: 0.25rem 0.4rem; font-size: 0.7rem; box-shadow: none; white-space: nowrap;">+ Key</button>
@@ -680,11 +682,11 @@
                 </div>
 
                 <!-- Security & Cache Control Card -->
-                <div class="card" style="flex: 1.2; min-height: 0;">
+                <div class="card" style="flex: 0 0 auto;">
                     <div class="card-header">
                         <div class="card-title">Security & Cache Control</div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.6rem; flex: 1; min-height: 0;">
+                    <div style="display: flex; flex-direction: column; gap: 0.6rem;">
                         <!-- Semantic Cache Row -->
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
                             <div style="flex: 1;">
@@ -862,7 +864,7 @@
             <!-- Column 3: Active Weighted Routing Rules -->
             <div class="column-wrapper">
                 <!-- Active Weighted Routing Card -->
-                <div class="card" style="flex: 1; min-height: 0;">
+                <div class="card" style="flex: 0 0 auto;">
                     <div class="card-header">
                         <div class="card-title">Active Weighted Routing</div>
                         <button type="button" id="open-add-rule-btn" style="padding: 0.25rem 0.4rem; font-size: 0.7rem; box-shadow: none; white-space: nowrap;">+ Route</button>
@@ -887,12 +889,12 @@
                 </div>
 
                 <!-- AI Classifier Training Card -->
-                <div class="card" style="flex: 1.2; min-height: 0; display: flex; flex-direction: column;">
+                <div class="card" style="flex: 0 0 auto; display: flex; flex-direction: column;">
                     <div class="card-header">
                         <div class="card-title">AI Classifier Training</div>
                         <button type="button" id="retrain-classifier-btn" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); padding: 0.25rem 0.5rem; font-size: 0.7rem; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25); white-space: nowrap;">Retrain Model</button>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-height: 0;">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; height: 320px;">
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <input type="text" id="classifier-search" placeholder="Search training prompts..." style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 6px; flex: 1;" />
                         </div>
