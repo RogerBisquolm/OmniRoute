@@ -44,6 +44,8 @@ Route::middleware(['gui.auth'])->group(function () {
         Route::post('/cache/clear', [DashboardController::class, 'clearCache']);
         Route::get('/rephrase/config', [DashboardController::class, 'getRephraseConfig']);
         Route::post('/rephrase/config', [DashboardController::class, 'updateRephraseConfig']);
+        Route::get('/compressor/config', [DashboardController::class, 'getCompressorConfig']);
+        Route::post('/compressor/config', [DashboardController::class, 'updateCompressorConfig']);
 
         // Ollama Control API
         Route::get('/ollama/models', [DashboardController::class, 'getOllamaModels']);

@@ -122,6 +122,9 @@ class DynamicConfig:
         self.rephrase_provider: str = "ollama"
         self.rephrase_model: str = "phi3"
         self.cache_threshold: float = 0.10
+        self.compressor_method: str = "llmlingua"
+        self.compressor_ratio: float = 0.70
+        self.compressor_caveman_intensity: str = "full"
         
     def update_rules(self, raw_message: str):
         try:

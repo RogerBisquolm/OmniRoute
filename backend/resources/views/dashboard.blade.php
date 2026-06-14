@@ -803,6 +803,60 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Prompt Compression Settings Card -->
+                <div class="card" style="flex: 0 0 auto; margin-top: 0.8rem;">
+                    <div class="card-header">
+                        <div class="card-title">Prompt Compression Control</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem;">Compression Strategy</h3>
+                                <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3;">
+                                    Select optimization technique for incoming prompts to minimize token usage.
+                                </p>
+                            </div>
+                            <select id="compressor-method" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); width: 150px; cursor: pointer;">
+                                <option value="disabled">Disabled</option>
+                                <option value="llmlingua">LLMLingua-2 (CPU)</option>
+                                <option value="rtk">RTK (Log/CLI Filter)</option>
+                                <option value="caveman">Caveman (Telegraphic)</option>
+                                <option value="stacked">Stacked (RTK + Caveman)</option>
+                                <option value="rtk+llmlingua">RTK + LLMLingua-2</option>
+                            </select>
+                        </div>
+
+                        <!-- Target Ratio (Slider for LLMLingua modes) -->
+                        <div id="compressor-ratio-container" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 0.2rem;">
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem;">LLMLingua Target Ratio</h3>
+                                <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3;">
+                                    Target proportion of tokens to retain. Lower keeps fewer tokens.
+                                </p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; min-width: 150px; justify-content: flex-end;">
+                                <input type="range" id="compressor-ratio" min="0.10" max="0.90" step="0.05" value="0.70" style="width: 100px; accent-color: var(--accent-primary); cursor: pointer; background: transparent;">
+                                <span id="compressor-ratio-val" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-primary); font-family: monospace; width: 32px; text-align: right;">0.70</span>
+                            </div>
+                        </div>
+
+                        <!-- Caveman Intensity (Dropdown for Caveman modes) -->
+                        <div id="compressor-caveman-container" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 0.2rem;">
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem;">Caveman Intensity</h3>
+                                <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3;">
+                                    Lite strips filler; Full strips articles & aux verbs; Ultra strips pronouns & prepositions.
+                                </p>
+                            </div>
+                            <select id="compressor-caveman-intensity" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); width: 150px; cursor: pointer;">
+                                <option value="lite">Lite (Clean)</option>
+                                <option value="full">Full (Telegraphic)</option>
+                                <option value="ultra">Ultra (Keywords Only)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Column 3: Active Weighted Routing Rules -->
@@ -1800,6 +1854,66 @@
             }
         }
 
+        // Fetch Compressor Configuration
+        async function fetchCompressorConfig() {
+            try {
+                const response = await fetch(`/api/compressor/config?_=${Date.now()}`);
+                if (!response.ok) throw new Error("Compressor config fetch failed");
+                const config = await response.json();
+                
+                const methodSelect = document.getElementById('compressor-method');
+                const ratioInput = document.getElementById('compressor-ratio');
+                const ratioVal = document.getElementById('compressor-ratio-val');
+                const intensitySelect = document.getElementById('compressor-caveman-intensity');
+
+                methodSelect.value = config.method;
+                ratioInput.value = config.ratio;
+                ratioVal.textContent = parseFloat(config.ratio).toFixed(2);
+                intensitySelect.value = config.caveman_intensity;
+
+                updateCompressorUI(config.method);
+            } catch (err) {
+                console.error("Failed to load compressor config:", err);
+            }
+        }
+
+        // Save Compressor Configuration
+        async function saveCompressorConfig() {
+            const methodSelect = document.getElementById('compressor-method');
+            const ratioInput = document.getElementById('compressor-ratio');
+            const intensitySelect = document.getElementById('compressor-caveman-intensity');
+
+            updateCompressorUI(methodSelect.value);
+
+            try {
+                const response = await fetch('/api/compressor/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        method: methodSelect.value,
+                        ratio: parseFloat(ratioInput.value),
+                        caveman_intensity: intensitySelect.value
+                    })
+                });
+                if (!response.ok) throw new Error("Save compressor config failed");
+                showToast("Compressor settings updated and synced to gateway!", '🔄');
+            } catch (err) {
+                showToast("Failed to save compressor settings", '❌');
+            }
+        }
+
+        // Update Compressor UI visibility based on method
+        function updateCompressorUI(method) {
+            const ratioContainer = document.getElementById('compressor-ratio-container');
+            const cavemanContainer = document.getElementById('compressor-caveman-container');
+
+            const hasRatio = ['llmlingua', 'rtk+llmlingua'].includes(method);
+            const hasCaveman = ['caveman', 'stacked'].includes(method);
+
+            ratioContainer.style.display = hasRatio ? 'flex' : 'none';
+            cavemanContainer.style.display = hasCaveman ? 'flex' : 'none';
+        }
+
         // Fetch Rephrase Configuration
         async function fetchRephraseConfig() {
             try {
@@ -1946,6 +2060,7 @@
             fetchKeywords();
             fetchClassifierSamples();
             fetchRephraseConfig();
+            fetchCompressorConfig();
             fetchOllamaModels();
             
             // Bind Ollama pull button click
@@ -1976,6 +2091,17 @@
                 updateThresholdDescription(val);
             });
             thresholdSlider.addEventListener('change', saveRephraseConfig);
+
+            // Bind Compressor configuration inputs
+            document.getElementById('compressor-method').addEventListener('change', saveCompressorConfig);
+            document.getElementById('compressor-caveman-intensity').addEventListener('change', saveCompressorConfig);
+
+            const ratioSlider = document.getElementById('compressor-ratio');
+            const ratioVal = document.getElementById('compressor-ratio-val');
+            ratioSlider.addEventListener('input', (e) => {
+                ratioVal.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+            ratioSlider.addEventListener('change', saveCompressorConfig);
 
             // Bind Classifier Search input
             document.getElementById('classifier-search').addEventListener('input', (e) => {

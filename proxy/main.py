@@ -76,6 +76,15 @@ async def redis_pubsub_listener():
                             f"provider={dynamic_config.rephrase_provider}, model={dynamic_config.rephrase_model}, "
                             f"threshold={dynamic_config.cache_threshold}"
                         )
+                    elif isinstance(data, dict) and data.get("action") == "update_compressor_config":
+                        compressor_config = data.get("compressor_config", {})
+                        dynamic_config.compressor_method = str(compressor_config.get("method", "llmlingua"))
+                        dynamic_config.compressor_ratio = float(compressor_config.get("ratio", 0.70))
+                        dynamic_config.compressor_caveman_intensity = str(compressor_config.get("caveman_intensity", "full"))
+                        logger.info(
+                            f"Updated compressor config from Pub/Sub: method={dynamic_config.compressor_method}, "
+                            f"ratio={dynamic_config.compressor_ratio}, caveman_intensity={dynamic_config.compressor_caveman_intensity}"
+                        )
                     else:
                         dynamic_config.update_rules(channel_data)
                 except Exception as parse_err:
@@ -132,8 +141,25 @@ async def lifespan(app: FastAPI):
                 f"provider={dynamic_config.rephrase_provider}, model={dynamic_config.rephrase_model}, "
                 f"threshold={dynamic_config.cache_threshold}"
             )
+            
+            # Load compressor configuration on startup
+            method_bytes = await redis_client.get("gateway:compressor_method")
+            ratio_bytes = await redis_client.get("gateway:compressor_ratio")
+            caveman_intensity_bytes = await redis_client.get("gateway:compressor_caveman_intensity")
+            
+            method_str = method_bytes.decode("utf-8") if method_bytes else "llmlingua"
+            ratio_str = ratio_bytes.decode("utf-8") if ratio_bytes else "0.70"
+            caveman_intensity_str = caveman_intensity_bytes.decode("utf-8") if caveman_intensity_bytes else "full"
+            
+            dynamic_config.compressor_method = method_str
+            dynamic_config.compressor_ratio = float(ratio_str)
+            dynamic_config.compressor_caveman_intensity = caveman_intensity_str
+            logger.info(
+                f"Loaded compressor config on startup: method={dynamic_config.compressor_method}, "
+                f"ratio={dynamic_config.compressor_ratio}, caveman_intensity={dynamic_config.compressor_caveman_intensity}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to load rephrase config from Redis on startup: {e}")
+            logger.warning(f"Failed to load rephrase/compressor config from Redis on startup: {e}")
             
     # 3. Initialize FastText classifier (auto-train if missing)
     await init_router()

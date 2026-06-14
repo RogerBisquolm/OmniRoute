@@ -186,6 +186,55 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get compressor configuration from Redis.
+     */
+    public function getCompressorConfig()
+    {
+        $method = \Illuminate\Support\Facades\Redis::get('gateway:compressor_method') ?: 'llmlingua';
+        $ratio = \Illuminate\Support\Facades\Redis::get('gateway:compressor_ratio') ?: '0.70';
+        $cavemanIntensity = \Illuminate\Support\Facades\Redis::get('gateway:compressor_caveman_intensity') ?: 'full';
+        
+        return response()->json([
+            'method' => $method,
+            'ratio' => (float) $ratio,
+            'caveman_intensity' => $cavemanIntensity
+        ]);
+    }
+
+    /**
+     * Update compressor configuration in Redis.
+     */
+    public function updateCompressorConfig(Request $request)
+    {
+        $request->validate([
+            'method' => 'required|string|in:llmlingua,rtk,caveman,stacked,rtk+llmlingua,disabled',
+            'ratio' => 'required|numeric|min:0.01|max:1.00',
+            'caveman_intensity' => 'required|string|in:lite,full,ultra'
+        ]);
+
+        $method = $request->input('method');
+        $ratio = number_format((float) $request->input('ratio'), 2, '.', '');
+        $cavemanIntensity = $request->input('caveman_intensity');
+
+        \Illuminate\Support\Facades\Redis::set('gateway:compressor_method', $method);
+        \Illuminate\Support\Facades\Redis::set('gateway:compressor_ratio', $ratio);
+        \Illuminate\Support\Facades\Redis::set('gateway:compressor_caveman_intensity', $cavemanIntensity);
+
+        // Publish update via Redis Pub/Sub to notify the python proxy
+        \Illuminate\Support\Facades\Redis::publish('gateway_config_updates', json_encode([
+            'action' => 'update_compressor_config',
+            'compressor_config' => [
+                'method' => $method,
+                'ratio' => (float) $ratio,
+                'caveman_intensity' => $cavemanIntensity
+            ]
+        ]));
+
+        return response()->json(['message' => 'Compressor configuration updated successfully.']);
+    }
+
+
+    /**
      * Get pulled Ollama models.
      */
     public function getOllamaModels()
